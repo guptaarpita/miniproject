@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const {
+  sendRegistrationOTP,
+  verifyOTPAndRegister,
+  resendOTP,
   registerUser,
   loginUser,
   getUserProfile,
@@ -15,6 +18,9 @@ const {
 } = require("../utils/validators");
 
 // Public routes
+router.post("/send-otp", validateRegister, validate, sendRegistrationOTP);
+router.post("/verify-otp", verifyOTPAndRegister);
+router.post("/resend-otp", resendOTP);
 router.post("/register", validateRegister, validate, registerUser);
 router.post("/login", validateLogin, validate, loginUser);
 

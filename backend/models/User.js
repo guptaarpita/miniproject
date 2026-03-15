@@ -66,9 +66,21 @@ const userSchema = new mongoose.Schema(
     },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
-    createdAt: {
+    otpCode: {
+      type: String,
+      select: false,
+    },
+    otpExpiry: {
       type: Date,
-      default: Date.now,
+      select: false,
+    },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    tempRegistrationData: {
+      type: mongoose.Schema.Types.Mixed,
+      select: false,
     },
   },
   {
@@ -76,17 +88,21 @@ const userSchema = new mongoose.Schema(
   },
 );
 
-// Encrypt password
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) {
-    next();
-  }
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
+
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-userSchema.methods.matchPassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
 };
 
-module.exports = mongoose.model("User", userSchema);
+if (mongoose.models.User) {
+  delete mongoose.models.User;
+}
+
+const User = mongoose.model("User", userSchema);
+
+module.exports = User;

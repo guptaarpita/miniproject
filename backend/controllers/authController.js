@@ -1,5 +1,222 @@
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
+const { generateOTP, generateOTPExpiry } = require("../utils/otpGenerator");
+const { sendOTPEmail } = require("../services/emailService");
+
+// Send OTP
+const sendRegistrationOTP = async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, email and password are required",
+      });
+    }
+
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser && existingUser.isEmailVerified) {
+      return res.status(400).json({
+        success: false,
+        message: "User already exists with this email",
+      });
+    }
+
+    // Generate OTP
+    const otp = generateOTP();
+    const otpExpiry = generateOTPExpiry(10); // 10 minutes expiry
+
+    if (existingUser) {
+      existingUser.name = name;
+      existingUser.password = password;
+      existingUser.role = role || "reader";
+      existingUser.otpCode = otp;
+      existingUser.otpExpiry = otpExpiry;
+      existingUser.tempRegistrationData = { name, email, password, role };
+
+      await existingUser.save();
+    } else {
+      console.log("Creating new user");
+      const newUser = new User({
+        name,
+        email,
+        password,
+        role: role || "reader",
+        otpCode: otp,
+        otpExpiry: otpExpiry,
+        isEmailVerified: false,
+        tempRegistrationData: { name, email, password, role },
+      });
+
+      await newUser.save();
+      console.log("Created new user successfully");
+    }
+
+    // Send OTP via email
+    await sendOTPEmail(email, name, otp);
+    console.log("OTP email sent successfully");
+
+    res.status(200).json({
+      success: true,
+      message: "OTP sent successfully to your email",
+      data: {
+        email,
+        expiresIn: "10 minutes",
+      },
+    });
+  } catch (error) {
+    console.error("Send OTP Error Details:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+    });
+
+    // Check for specific mongoose errors
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: "Validation error",
+        error: error.message,
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to send OTP",
+      error: error.message,
+    });
+  }
+};
+
+// Verify OTP
+const verifyOTPAndRegister = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    // Find user by email
+    const user = await User.findOne({ email }).select(
+      "+otpCode +otpExpiry +tempRegistrationData +password",
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Check if already verified
+    if (user.isEmailVerified) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already verified",
+      });
+    }
+
+    // Verify OTP
+    if (!user.otpCode || user.otpCode !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP code",
+      });
+    }
+
+    // Check OTP expiry
+    if (user.otpExpiry < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP has expired. Please request a new one.",
+      });
+    }
+
+    // Mark email as verified and clear OTP fields
+    user.isEmailVerified = true;
+    user.otpCode = undefined;
+    user.otpExpiry = undefined;
+    user.tempRegistrationData = undefined;
+
+    await user.save();
+
+    // Generate token and return user data
+    res.status(201).json({
+      success: true,
+      message: "Email verified successfully! Registration complete.",
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        profilePicture: user.profilePicture,
+        isVerified: user.isVerified,
+        isEmailVerified: user.isEmailVerified,
+        token: generateToken(user._id, user.role),
+      },
+    });
+  } catch (error) {
+    console.error("Verify OTP Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+// Resend OTP
+const resendOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email }).select(
+      "+otpCode +otpExpiry +tempRegistrationData",
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (user.isEmailVerified) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already verified",
+      });
+    }
+
+    // Generate new OTP
+    const otp = generateOTP();
+    const otpExpiry = generateOTPExpiry(10);
+
+    // Update user with new OTP
+    user.otpCode = otp;
+    user.otpExpiry = otpExpiry;
+
+    await user.save();
+
+    // Send new OTP via email
+    await sendOTPEmail(email, user.name, otp);
+
+    res.status(200).json({
+      success: true,
+      message: "OTP resent successfully",
+      data: {
+        email,
+        expiresIn: "10 minutes",
+      },
+    });
+  } catch (error) {
+    console.error("Resend OTP Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to resend OTP",
+      error: error.message,
+    });
+  }
+};
 
 const registerUser = async (req, res) => {
   try {
@@ -62,7 +279,7 @@ const loginUser = async (req, res) => {
       });
     }
 
-    const isPasswordMatch = await user.matchPassword(password);
+    const isPasswordMatch = await user.comparePassword(password);
 
     if (!isPasswordMatch) {
       return res.status(401).json({
@@ -202,6 +419,9 @@ const linkWallet = async (req, res) => {
 };
 
 module.exports = {
+  sendRegistrationOTP,
+  verifyOTPAndRegister,
+  resendOTP,
   registerUser,
   loginUser,
   getUserProfile,
