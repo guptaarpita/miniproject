@@ -1,328 +1,231 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   BookOpen,
   Users,
   TrendingUp,
-  Award,
+  Star,
   PenTool,
   BookMarked,
-  MessageCircle,
   Shield,
   ChevronRight,
   Activity,
   Clock,
-  Star,
   FileText,
+  Wallet,
+  Edit2,
 } from "lucide-react";
 import "../styles/Dashboard.css";
+
+// ── Quick action card ─────────────────────────────────────────────────────────
+const ActionCard = ({
+  icon,
+  title,
+  subtitle,
+  to,
+  color = "default",
+  onClick,
+}) => {
+  const Tag = to ? Link : "button";
+  return (
+    <Tag
+      to={to}
+      onClick={onClick}
+      className={`action-card action-card--${color}`}
+    >
+      <div className="action-card-icon">{icon}</div>
+      <div>
+        <h3>{title}</h3>
+        <p>{subtitle}</p>
+      </div>
+    </Tag>
+  );
+};
+
+// ── Stat card ─────────────────────────────────────────────────────────────────
+const StatCard = ({ label, value, icon, color, trend }) => (
+  <div className="stat-card">
+    <div className="stat-card-header">
+      <div>
+        <p className="stat-label">{label}</p>
+        <p className="stat-value">{value}</p>
+      </div>
+      <div className={`stat-icon ${color}`}>{icon}</div>
+    </div>
+    {trend && (
+      <div className="stat-trend positive">
+        <TrendingUp size={14} />
+        <span>{trend}</span>
+      </div>
+    )}
+  </div>
+);
+
+// ── Role dashboards ───────────────────────────────────────────────────────────
+
+const AuthorDashboard = ({ navigate }) => (
+  <>
+    <div className="stats-grid">
+      <StatCard
+        label="Total Books"
+        value="5"
+        icon={<BookOpen size={18} />}
+        color="indigo"
+        trend="+1 this month"
+      />
+      <StatCard
+        label="Total Reads"
+        value="1,243"
+        icon={<Users size={18} />}
+        color="purple"
+        trend="+12% this week"
+      />
+      <StatCard
+        label="Followers"
+        value="342"
+        icon={<Users size={18} />}
+        color="pink"
+        trend="+18 new"
+      />
+      <StatCard
+        label="Avg. Rating"
+        value="4.5"
+        icon={<Star size={18} />}
+        color="yellow"
+      />
+    </div>
+
+    <div className="section-label">Quick Actions</div>
+    <div className="actions-grid">
+      <ActionCard
+        icon={<PenTool size={22} />}
+        title="Write New Book"
+        subtitle="Start your next story"
+        to="/upload-book"
+        color="primary"
+      />
+      <ActionCard
+        icon={<Users size={22} />}
+        title="Collaborate"
+        subtitle="Co-author with others"
+        to="/collaborative-writing"
+        color="green"
+      />
+      <ActionCard
+        icon={<Shield size={22} />}
+        title="Verify Ownership"
+        subtitle="Register on blockchain"
+        to="/blockchain/verify"
+        color="blue"
+      />
+    </div>
+  </>
+);
+
+const PublisherDashboard = ({ navigate }) => (
+  <>
+    <div className="stats-grid">
+      <StatCard
+        label="Authors"
+        value="24"
+        icon={<Users size={18} />}
+        color="indigo"
+      />
+      <StatCard
+        label="Active Projects"
+        value="12"
+        icon={<FileText size={18} />}
+        color="purple"
+      />
+      <StatCard
+        label="Pending Reviews"
+        value="8"
+        icon={<Clock size={18} />}
+        color="pink"
+      />
+      <StatCard
+        label="Royalties"
+        value="$2.4K"
+        icon={<TrendingUp size={18} />}
+        color="yellow"
+      />
+    </div>
+
+    <div className="section-label">Quick Actions</div>
+    <div className="actions-grid actions-grid--2">
+      <ActionCard
+        icon={<FileText size={22} />}
+        title="Publication Requests"
+        subtitle="Review author submissions"
+        to="/publisher/requests"
+        color="primary"
+      />
+      <ActionCard
+        icon={<Users size={22} />}
+        title="Discover Authors"
+        subtitle="Find new talent"
+        to="/publisher/discover"
+        color="green"
+      />
+    </div>
+  </>
+);
+
+const ReaderDashboard = ({ navigate }) => (
+  <>
+    <div className="stats-grid stats-grid--3">
+      <StatCard
+        label="Books Read"
+        value="23"
+        icon={<BookOpen size={18} />}
+        color="indigo"
+      />
+      <StatCard
+        label="Reviews Written"
+        value="15"
+        icon={<Star size={18} />}
+        color="purple"
+      />
+      <StatCard
+        label="Following"
+        value="8"
+        icon={<Users size={18} />}
+        color="pink"
+      />
+    </div>
+
+    <div className="section-label">Quick Actions</div>
+    <div className="actions-grid actions-grid--2">
+      <ActionCard
+        icon={<BookMarked size={22} />}
+        title="Discover Books"
+        subtitle="AI-powered picks for you"
+        to="/books"
+        color="primary"
+      />
+      <ActionCard
+        icon={<Users size={22} />}
+        title="Author Matches"
+        subtitle="Find authors you'll love"
+        to="/recommendations/matches"
+        color="green"
+      />
+    </div>
+  </>
+);
+
+// ── Main Dashboard ────────────────────────────────────────────────────────────
 
 const Dashboard = () => {
   const { user, isAuthor, isPublisher, isReader, logout } = useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState({
-    totalReads: 1243,
-    totalBooks: 5,
-    followers: 342,
-    rating: 4.5,
-  });
 
-  // Mock data for recent activities
-  const recentActivities = [
-    {
-      id: 1,
-      action: "Published new book",
-      title: "The Digital Age",
-      time: "2 hours ago",
-    },
-    {
-      id: 2,
-      action: "Received review",
-      title: '5 stars on "Blockchain Basics"',
-      time: "5 hours ago",
-    },
-    {
-      id: 3,
-      action: "Started collaboration",
-      title: "with Sarah Johnson",
-      time: "1 day ago",
-    },
-    {
-      id: 4,
-      action: "Book verified",
-      title: "Ownership recorded on blockchain",
-      time: "2 days ago",
-    },
-  ];
-
-  // Mock data for recommendations
-  const recommendations = [
-    { id: 1, title: "AI Revolution", author: "John Smith", match: "95%" },
-    {
-      id: 2,
-      title: "Blockchain for Authors",
-      author: "Emily Chen",
-      match: "92%",
-    },
-    {
-      id: 3,
-      title: "Digital Publishing Guide",
-      author: "Michael Brown",
-      match: "88%",
-    },
-  ];
-
-  const getDashboardContent = () => {
-    if (isAuthor) {
-      return (
-        <>
-          {/* Author Stats */}
-          <div className="stats-grid">
-            <div className="stat-card">
-              <div className="stat-card-header">
-                <div>
-                  <p className="stat-label">Total Books</p>
-                  <p className="stat-value">{stats.totalBooks}</p>
-                </div>
-                <div className="stat-icon indigo">
-                  <BookOpen />
-                </div>
-              </div>
-              <div className="stat-trend positive">
-                <TrendingUp />
-                <span>+2 this month</span>
-              </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-card-header">
-                <div>
-                  <p className="stat-label">Total Reads</p>
-                  <p className="stat-value">{stats.totalReads}</p>
-                </div>
-                <div className="stat-icon purple">
-                  <Users />
-                </div>
-              </div>
-              <div className="stat-trend positive">
-                <TrendingUp />
-                <span>+12% this week</span>
-              </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-card-header">
-                <div>
-                  <p className="stat-label">Followers</p>
-                  <p className="stat-value">{stats.followers}</p>
-                </div>
-                <div className="stat-icon pink">
-                  <Users />
-                </div>
-              </div>
-              <div className="stat-trend positive">
-                <TrendingUp />
-                <span>+18 new</span>
-              </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-card-header">
-                <div>
-                  <p className="stat-label">Avg. Rating</p>
-                  <p className="stat-value">{stats.rating}</p>
-                </div>
-                <div className="stat-icon yellow">
-                  <Star />
-                </div>
-              </div>
-              <div className="stat-trend">
-                <span>Based on 89 reviews</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Author Actions */}
-          <div className="actions-grid">
-            <button
-              onClick={() => navigate("/upload-book")}
-              className="action-card"
-            >
-              <PenTool />
-              <h3>Write New Book</h3>
-              <p>Start your next masterpiece</p>
-            </button>
-
-            <button
-              onClick={() => navigate("/collaborative-writing")}
-              className="action-card green"
-            >
-              <Users />
-              <h3>Collaborate</h3>
-              <p>Write with other authors</p>
-            </button>
-
-            <button
-              onClick={() => navigate("/blockchain/verify")}
-              className="action-card blue"
-            >
-              <Shield />
-              <h3>Verify Ownership</h3>
-              <p>Secure your work on blockchain</p>
-            </button>
-          </div>
-        </>
-      );
-    } else if (isPublisher) {
-      return (
-        <>
-          {/* Publisher Stats */}
-          <div className="stats-grid">
-            <div className="stat-card">
-              <div className="stat-card-header">
-                <div>
-                  <p className="stat-label">Published Authors</p>
-                  <p className="stat-value">24</p>
-                </div>
-                <div className="stat-icon indigo">
-                  <Users />
-                </div>
-              </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-card-header">
-                <div>
-                  <p className="stat-label">Active Projects</p>
-                  <p className="stat-value">12</p>
-                </div>
-                <div className="stat-icon purple">
-                  <FileText />
-                </div>
-              </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-card-header">
-                <div>
-                  <p className="stat-label">Pending Reviews</p>
-                  <p className="stat-value">8</p>
-                </div>
-                <div className="stat-icon pink">
-                  <Clock />
-                </div>
-              </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-card-header">
-                <div>
-                  <p className="stat-label">Royalties</p>
-                  <p className="stat-value">$2.4K</p>
-                </div>
-                <div className="stat-icon yellow">
-                  <TrendingUp />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Publisher Actions */}
-          <div
-            className="actions-grid"
-            style={{ gridTemplateColumns: "repeat(2, 1fr)" }}
-          >
-            <button
-              onClick={() => navigate("/publisher/requests")}
-              className="action-card"
-            >
-              <FileText />
-              <h3>Publication Requests</h3>
-              <p>Review author submissions</p>
-            </button>
-
-            <button
-              onClick={() => navigate("/publisher/discover")}
-              className="action-card green"
-            >
-              <Users />
-              <h3>Discover Authors</h3>
-              <p>Find new talents</p>
-            </button>
-          </div>
-        </>
-      );
-    } else {
-      // Reader Dashboard
-      return (
-        <>
-          {/* Reader Stats */}
-          <div
-            className="stats-grid"
-            style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
-          >
-            <div className="stat-card">
-              <div className="stat-card-header">
-                <div>
-                  <p className="stat-label">Books Read</p>
-                  <p className="stat-value">23</p>
-                </div>
-                <div className="stat-icon indigo">
-                  <BookOpen />
-                </div>
-              </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-card-header">
-                <div>
-                  <p className="stat-label">Reviews Written</p>
-                  <p className="stat-value">15</p>
-                </div>
-                <div className="stat-icon purple">
-                  <Star />
-                </div>
-              </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-card-header">
-                <div>
-                  <p className="stat-label">Following</p>
-                  <p className="stat-value">8</p>
-                </div>
-                <div className="stat-icon pink">
-                  <Users />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Reader Actions */}
-          <div
-            className="actions-grid"
-            style={{ gridTemplateColumns: "repeat(2, 1fr)" }}
-          >
-            <button onClick={() => navigate("/books")} className="action-card">
-              <BookMarked />
-              <h3>Discover Books</h3>
-              <p>AI-powered recommendations</p>
-            </button>
-
-            <button
-              onClick={() => navigate("/recommendations/matches")}
-              className="action-card green"
-            >
-              <Users />
-              <h3>Author Matches</h3>
-              <p>Find authors you'll love</p>
-            </button>
-          </div>
-        </>
-      );
-    }
-  };
+  const roleSubtitle = isAuthor
+    ? "Your literary journey continues..."
+    : isPublisher
+    ? "Manage your publishing network"
+    : "Discover your next favourite book";
 
   return (
     <div className="dashboard">
@@ -330,60 +233,94 @@ const Dashboard = () => {
       <header className="dashboard-header">
         <div className="dashboard-header-content">
           <div className="header-title">
-            <h1>Welcome back, {user?.name}!</h1>
-            <p>
-              {isAuthor && "Your literary journey continues..."}
-              {isPublisher && "Manage your publishing network"}
-              {isReader && "Discover your next favorite book"}
-            </p>
+            <h1>Welcome back, {user?.name?.split(" ")[0]}!</h1>
+            <p>{roleSubtitle}</p>
           </div>
-          <button onClick={logout} className="btn-logout">
-            Logout
-          </button>
+          <div className="header-actions">
+            <Link to="/profile" className="btn-view-profile">
+              <Edit2 size={14} /> My Profile
+            </Link>
+            <button onClick={logout} className="btn-logout">
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="dashboard-main">
-        {getDashboardContent()}
+        {/* Role-specific content */}
+        {isAuthor && <AuthorDashboard navigate={navigate} />}
+        {isPublisher && <PublisherDashboard navigate={navigate} />}
+        {isReader && <ReaderDashboard navigate={navigate} />}
 
-        {/* Recent Activity and Recommendations */}
+        {/* Activity + Recommendations */}
         <div className="dashboard-grid">
-          {/* Recent Activity */}
           <div className="recent-activity">
             <div className="section-header">
-              <Activity />
+              <Activity size={18} />
               <h2>Recent Activity</h2>
             </div>
             <div className="activity-list">
-              {recentActivities.map((activity) => (
-                <div key={activity.id} className="activity-item">
+              {[
+                {
+                  action: "Published new book",
+                  detail: "The Digital Age",
+                  time: "2 hours ago",
+                },
+                {
+                  action: "Received review",
+                  detail: '5 stars on "Blockchain Basics"',
+                  time: "5 hours ago",
+                },
+                {
+                  action: "Started collaboration",
+                  detail: "with Sarah Johnson",
+                  time: "1 day ago",
+                },
+                {
+                  action: "Ownership verified",
+                  detail: "Recorded on blockchain",
+                  time: "2 days ago",
+                },
+              ].map((item, i) => (
+                <div key={i} className="activity-item">
                   <div className="activity-icon">
-                    <Clock />
+                    <Clock size={14} />
                   </div>
                   <div className="activity-content">
-                    <p className="activity-action">{activity.action}</p>
-                    <p className="activity-title">{activity.title}</p>
-                    <p className="activity-time">{activity.time}</p>
+                    <p className="activity-action">{item.action}</p>
+                    <p className="activity-title">{item.detail}</p>
+                    <p className="activity-time">{item.time}</p>
                   </div>
-                  <ChevronRight className="activity-arrow" />
+                  <ChevronRight size={16} className="activity-arrow" />
                 </div>
               ))}
             </div>
           </div>
 
-          {/* AI Recommendations */}
           <div className="recommendations">
             <div className="section-header">
-              <TrendingUp />
+              <TrendingUp size={18} />
               <h2>AI Recommendations</h2>
             </div>
             <div className="recommendations-list">
-              {recommendations.map((book) => (
-                <div key={book.id} className="recommendation-item">
+              {[
+                { title: "AI Revolution", author: "John Smith", match: "95%" },
+                {
+                  title: "Blockchain for Authors",
+                  author: "Emily Chen",
+                  match: "92%",
+                },
+                {
+                  title: "Digital Publishing Guide",
+                  author: "Michael Brown",
+                  match: "88%",
+                },
+              ].map((book, i) => (
+                <div key={i} className="recommendation-item">
                   <div className="recommendation-header">
                     <span className="recommendation-title">{book.title}</span>
-                    <span className="match-badge">{book.match} match</span>
+                    <span className="match-badge">{book.match}</span>
                   </div>
                   <p className="recommendation-author">by {book.author}</p>
                   <button className="btn-view">View Details →</button>
@@ -393,23 +330,28 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Blockchain Status */}
+        {/* Blockchain status */}
         <div className="blockchain-status">
           <div className="status-content">
             <div className="status-icon">
-              <Shield />
+              <Shield size={28} />
             </div>
             <div className="status-text">
               <h3>Blockchain Verification Status</h3>
               <p>
                 {user?.blockchainWallet?.isLinked
-                  ? "Your wallet is linked and verified"
-                  : "Link your wallet to verify ownership"}
+                  ? `Wallet linked: ${user.blockchainWallet.address?.slice(
+                      0,
+                      20,
+                    )}...`
+                  : "Link your wallet to verify content ownership"}
               </p>
             </div>
           </div>
           {!user?.blockchainWallet?.isLinked && (
-            <button className="btn-link-wallet">Link Wallet</button>
+            <button className="btn-link-wallet">
+              <Wallet size={15} /> Link Wallet
+            </button>
           )}
         </div>
       </main>

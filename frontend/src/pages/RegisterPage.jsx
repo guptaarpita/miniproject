@@ -109,7 +109,6 @@ const RegisterPage = () => {
       if (response.data.success) {
         const { token, ...userInfo } = response.data.data;
         localStorage.setItem("user", JSON.stringify({ ...userInfo, token }));
-        axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
         await login(registrationEmail, formData.password);
         navigate("/dashboard");
@@ -157,7 +156,6 @@ const RegisterPage = () => {
           )}
 
           <form className="register-form" onSubmit={handleSubmit}>
-            {/* Form fields remain the same as before */}
             <div className="form-group">
               <label htmlFor="name">Full Name</label>
               <div className="input-wrapper">
