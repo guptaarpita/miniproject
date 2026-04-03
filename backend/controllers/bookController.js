@@ -17,7 +17,11 @@ const getBooks = async (req, res) => {
     if (genre) query.genre = genre;
     if (author) query.author = author;
     if (search) {
-      query.$text = { $search: search };
+      query.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+        { tags: { $regex: search, $options: "i" } },
+      ];
     }
 
     const skip = (Number(page) - 1) * Number(limit);
