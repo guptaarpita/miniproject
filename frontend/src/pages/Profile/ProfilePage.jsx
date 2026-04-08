@@ -9,7 +9,7 @@ import PublisherProfileContent from "../../components/profile/PublisherProfileCo
 import "../../styles/ProfilePage.css";
 
 const ProfilePage = () => {
-  const { user, isAuthor, isPublisher, isReader } = useAuth();
+  const { user, isAuthor, isPublisher, isReader, logout } = useAuth();
   const navigate = useNavigate();
 
   const getRoleColor = () => {
@@ -71,6 +71,12 @@ const ProfilePage = () => {
           >
             <Edit2 size={15} />
             Edit Profile
+          </button>
+          <button
+              className="btn-logout-profile"
+              onClick={logout}
+          >
+              Logout
           </button>
         </div>
       </div>

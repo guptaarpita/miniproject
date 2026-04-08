@@ -729,3 +729,44 @@
     flex-wrap: wrap;
   }
 }
+
+.profile-action-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.btn-logout-profile {
+  display: flex;
+  align-items: center;
+  gap: 1.0rem;
+  background: var(--bg-primary);
+  border: 1px solid rgba(239,68,68,0.4);
+  color: #ef4444;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  width: 10%;
+}
+
+.btn-logout-profile:hover {
+  border-color: #ef4444;
+  background: rgba(239,68,68,0.08);
+}
+
+@media (max-width: 768px) {
+  .profile-action-btns {
+    width: 30%;
+  }
+  .btn-logout-profile {
+    width: 30%;
+    justify-content: center;
+  }
+}
