@@ -10,7 +10,7 @@ import api from "../../utils/api.js";
 import "../../styles/ProfilePage.css";
 
 const ProfilePage = () => {
-  const { user, isAuthor, isPublisher, isReader, updateProfile } = useAuth();
+  const { user, isAuthor, isPublisher, isReader, updateProfile, logout } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(user);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -134,6 +134,12 @@ const ProfilePage = () => {
           >
             <Edit2 size={15} />
             Edit Profile
+          </button>
+          <button
+              className="btn-logout-profile"
+              onClick={logout}
+          >
+              Logout
           </button>
         </div>
       </div>

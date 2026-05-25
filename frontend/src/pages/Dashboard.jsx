@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
+import SearchBar from "../components/SearchBar";
 import {
   BookOpen,
   Users,
@@ -13,8 +14,7 @@ import {
   Activity,
   Clock,
   FileText,
-  Wallet,
-  Edit2,
+  Wallet
 } from "lucide-react";
 import "../styles/Dashboard.css";
 
@@ -236,14 +236,16 @@ const Dashboard = () => {
             <h1>Welcome back, {user?.name?.split(" ")[0]}!</h1>
             <p>{roleSubtitle}</p>
           </div>
-          <div className="header-actions">
-            <Link to="/profile" className="btn-view-profile">
-              <Edit2 size={14} /> My Profile
-            </Link>
-            <button onClick={logout} className="btn-logout">
-              Logout
-            </button>
+          <SearchBar />
+          <Link to="/profile" className="profile-pill">
+          <div className="profile-pill-avatar">
+            {user?.name?.split(" ").map(n=>n[0]).join("").toUpperCase()}
           </div>
+          <div className="profile-pill-info">
+            <span className="profile-pill-name">{user?.name?.split(" ")[0]}</span>
+            <span className="profile-pill-role">{user?.role}</span>
+          </div>
+          </Link>
         </div>
       </header>
 

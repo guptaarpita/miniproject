@@ -417,7 +417,22 @@ const linkWallet = async (req, res) => {
     });
   }
 };
-
+const searchUsers = async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) return res.json({ success: true, data: [] });
+    const users = await User.find({
+      $or: [
+        { name: { $regex: q, $options: "i" } },
+        { email: { $regex: q, $options: "i" } }
+      ],
+      role: { $in: ["author", "publisher"] }
+    }).select("name email role profilePicture").limit(5);
+    res.json({ success: true, data: users });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
 module.exports = {
   sendRegistrationOTP,
   verifyOTPAndRegister,
@@ -427,4 +442,5 @@ module.exports = {
   getUserProfile,
   updateUserProfile,
   linkWallet,
+  searchUsers,
 };
