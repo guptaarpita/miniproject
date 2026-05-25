@@ -1,28 +1,40 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, Users, Clock, TrendingUp, Shield } from "lucide-react";
-import StatBubble from "./StatBubble";
-import ProjectItem from "./ProjectItem";
-import AuthorRosterItem from "./AuthorRosterItem";
-import VerificationBanner from "./VerificationBanner";
+import { BookOpen, Users, Clock, TrendingUp } from "lucide-react";
+import StatBubble from "./StatBubble.jsx";
+import VerificationBanner from "./VerificationBanner.jsx";
+import { useBooks } from "../../hooks/useBooks.js";
 import "../../styles/ProfilePage.css";
 
-const PublisherProfileContent = ({ user }) => {
-  const mockAuthors = [
-    { id: 1, name: "Alex Mercer", books: 3, genre: "Sci-Fi" },
-    { id: 2, name: "Sarah Kim", books: 2, genre: "Technology" },
-    { id: 3, name: "Emily Chen", books: 4, genre: "Fiction" },
-  ];
+const ProjectRow = ({ book }) => {
+  const phase =
+    book.status === "published"
+      ? "Published"
+      : book.status === "under_review"
+      ? "In Review"
+      : "Draft";
 
-  const mockProjects = [
-    { id: 1, title: "The AI Series", phase: "In Review", authors: 2 },
-    {
-      id: 2,
-      title: "Blockchain for Everyone",
-      phase: "Publishing",
-      authors: 1,
-    },
-  ];
+  const phaseClass = phase.toLowerCase().replace(" ", "-");
+
+  return (
+    <div className="project-item">
+      <div className="project-info">
+        <span className="project-title">{book.title}</span>
+        <span className="project-meta">
+          by {book.author?.name} · {book.genre}
+        </span>
+      </div>
+      <span className={`phase-badge phase--${phaseClass}`}>{phase}</span>
+    </div>
+  );
+};
+
+const PublisherProfileContent = ({ user }) => {
+  const { books: publishedBooks, loading } = useBooks({
+    status: "published",
+    limit: 6,
+    sort: "-createdAt",
+  });
 
   return (
     <>
@@ -30,59 +42,85 @@ const PublisherProfileContent = ({ user }) => {
       <div className="profile-stats-row">
         <StatBubble
           icon={<Users size={20} />}
-          value="24"
+          value="4"
           label="Authors"
           color="indigo"
         />
         <StatBubble
           icon={<BookOpen size={20} />}
-          value="67"
+          value={String(publishedBooks.length || "—")}
           label="Published"
           color="teal"
         />
         <StatBubble
           icon={<Clock size={20} />}
-          value="12"
+          value="2"
           label="Active"
           color="pink"
         />
         <StatBubble
           icon={<TrendingUp size={20} />}
-          value="$2.4K"
+          value="₹2.4K"
           label="Royalties"
           color="yellow"
         />
       </div>
 
-      {/* Verification badge */}
-      <VerificationBanner />
+      {/* Verification */}
+      {user?.isVerified && <VerificationBanner />}
 
-      {/* Active projects */}
-      <section className="profile-section">
-        <h3 className="profile-section-title">
-          <TrendingUp size={16} /> Active Projects
-        </h3>
-        <div className="project-list">
-          {mockProjects.map((proj) => (
-            <ProjectItem key={proj.id} project={proj} />
-          ))}
-        </div>
-      </section>
-
-      {/* Authors roster */}
+      {/* Active catalog - real books from DB */}
       <section className="profile-section">
         <div className="section-header-row">
           <h3 className="profile-section-title">
-            <Users size={16} /> Our Authors
+            <BookOpen size={16} /> Publication Catalog
+          </h3>
+          <Link to="/publisher/requests" className="btn-section-action">
+            Review Submissions
+          </Link>
+        </div>
+
+        <div className="project-list">
+          {loading && (
+            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+              Loading...
+            </p>
+          )}
+          {!loading && publishedBooks.length === 0 && (
+            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+              No books in catalog yet.
+            </p>
+          )}
+          {!loading &&
+            publishedBooks.map((book) => (
+              <ProjectRow key={book._id} book={book} />
+            ))}
+        </div>
+      </section>
+
+      {/* Discover authors CTA */}
+      <section className="profile-section">
+        <div className="section-header-row">
+          <h3 className="profile-section-title">
+            <Users size={16} /> Authors Network
           </h3>
           <Link to="/publisher/discover" className="btn-section-action">
             Discover +
           </Link>
         </div>
-        <div className="author-roster">
-          {mockAuthors.map((author) => (
-            <AuthorRosterItem key={author.id} author={author} />
-          ))}
+        <div
+          style={{
+            background: "var(--bg-secondary)",
+            border: "1px dashed var(--border-medium)",
+            borderRadius: "var(--radius-lg)",
+            padding: "1.5rem",
+            textAlign: "center",
+            color: "var(--text-muted)",
+            fontSize: "0.875rem",
+          }}
+        >
+          Discover talented authors on the platform and invite them to publish
+          with you.
         </div>
       </section>
     </>

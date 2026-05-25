@@ -1,44 +1,52 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { BookOpen, Users, Star, Award, Clock, BookMarked } from "lucide-react";
-import StatBubble from "./StatBubble";
-import InterestTag from "./InterestTag";
-import BookListItem from "./BookListItem";
-import { WishlistCard, AddWishlistCard } from "./WishlistCard";
+import StatBubble from "./StatBubble.jsx";
+import InterestTag from "./InterestTag.jsx";
+import { useBooks } from "../../hooks/useBooks.js";
 import "../../styles/ProfilePage.css";
 
-const ReaderProfileContent = ({ user }) => {
-  const mockReadingHistory = [
-    {
-      id: 1,
-      title: "The Digital Age",
-      author: "Alex Mercer",
-      genre: "Sci-Fi",
-      rating: 5,
-      date: "Mar 2026",
-    },
-    {
-      id: 2,
-      title: "Blockchain Basics",
-      author: "Sarah Kim",
-      genre: "Technology",
-      rating: 4,
-      date: "Feb 2026",
-    },
-    {
-      id: 3,
-      title: "AI Revolution",
-      author: "John Smith",
-      genre: "Non-Fiction",
-      rating: 5,
-      date: "Feb 2026",
-    },
-  ];
+// Wishlist cards
+const WishlistCard = ({ book }) => (
+  <div className="wishlist-card">
+    <div className="wishlist-cover">
+      {book.coverImage && book.coverImage !== "default-cover.jpg" ? (
+        <img
+          src={book.coverImage}
+          alt={book.title}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+      ) : (
+        <BookOpen size={22} />
+      )}
+    </div>
+    <span className="wishlist-title">{book.title}</span>
+    <span className="wishlist-author">{book.author?.name || "Unknown"}</span>
+  </div>
+);
 
-  const mockWishlist = [
-    { id: 1, title: "Deep Learning Demystified", author: "Emily Chen" },
-    { id: 2, title: "Smart Contracts 101", author: "Michael Brown" },
-  ];
+const AddWishlistCard = () => (
+  <div className="wishlist-card wishlist-card--add">
+    <span className="wishlist-add-icon">+</span>
+    <span className="wishlist-title">Discover books</span>
+  </div>
+);
+
+const ReaderProfileContent = ({ user }) => {
+  // Show latest published books as "recommended reading" for this reader
+  const { books: latestBooks, loading } = useBooks({
+    status: "published",
+    limit: 3,
+    sort: "-createdAt",
+  });
+
+  // Books matching reader's interests as wishlist suggestions
+  const firstInterest = user?.interests?.[0];
+  const { books: genreBooks } = useBooks({
+    status: "published",
+    genre: firstInterest,
+    limit: 3,
+  });
 
   return (
     <>
@@ -84,31 +92,84 @@ const ReaderProfileContent = ({ user }) => {
         </section>
       )}
 
-      {/* Reading history */}
+      {/* Recent reads - showing latest published books from DB as placeholder */}
       <section className="profile-section">
         <div className="section-header-row">
           <h3 className="profile-section-title">
-            <Clock size={16} /> Reading History
+            <Clock size={16} /> Recently Read
           </h3>
           <Link to="/books" className="see-all-link">
-            See all →
+            Browse all →
           </Link>
         </div>
+
         <div className="book-list">
-          {mockReadingHistory.map((book) => (
-            <BookListItem key={book.id} book={book} showRating={true} />
-          ))}
+          {loading && (
+            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+              Loading...
+            </p>
+          )}
+          {!loading &&
+            latestBooks.map((book) => (
+              <div key={book._id} className="book-list-item">
+                <div className="book-cover-placeholder">
+                  {book.coverImage &&
+                  book.coverImage !== "default-cover.jpg" ? (
+                    <img
+                      src={book.coverImage}
+                      alt={book.title}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        borderRadius: "4px",
+                      }}
+                    />
+                  ) : (
+                    <BookOpen size={18} />
+                  )}
+                </div>
+                <div className="book-list-info">
+                  <span className="book-list-title">{book.title}</span>
+                  <span className="book-list-author">
+                    by {book.author?.name}
+                  </span>
+                  <span
+                    className="book-list-meta"
+                    style={{ textTransform: "capitalize" }}
+                  >
+                    {book.genre}
+                    {book.averageRating > 0 && ` · ★ ${book.averageRating}`}
+                  </span>
+                </div>
+                {book.averageRating > 0 && (
+                  <div className="book-list-rating">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star
+                        key={i}
+                        size={12}
+                        className={
+                          i < Math.round(book.averageRating)
+                            ? "star-filled"
+                            : "star-empty"
+                        }
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
         </div>
       </section>
 
-      {/* Wishlist */}
+      {/* Wishlist - show genre-matched books from DB */}
       <section className="profile-section">
         <h3 className="profile-section-title">
-          <BookMarked size={16} /> Wishlist
+          <BookMarked size={16} /> Suggested for You
         </h3>
         <div className="wishlist-grid">
-          {mockWishlist.map((book) => (
-            <WishlistCard key={book.id} book={book} />
+          {genreBooks.map((book) => (
+            <WishlistCard key={book._id} book={book} />
           ))}
           <AddWishlistCard />
         </div>

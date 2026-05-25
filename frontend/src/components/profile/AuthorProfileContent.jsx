@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   BookOpen,
   Users,
@@ -7,73 +7,151 @@ import {
   TrendingUp,
   PenTool,
   Shield,
+  Edit,
 } from "lucide-react";
-import StatBubble from "./StatBubble";
-import InterestTag from "./InterestTag";
-import BookListItem from "./BookListItem";
-import WalletCard from "./WalletCard";
+import StatBubble from "./StatBubble.jsx";
+import InterestTag from "./InterestTag.jsx";
+import WalletCard from "./WalletCard.jsx";
 import CollaborationCard from "./CollaborationCard";
+import { useMyBooks } from "../../hooks/useBooks.js";
 import "../../styles/ProfilePage.css";
 
+//  Updated BookRow with Edit button
+const BookRow = ({ book }) => {
+  const navigate = useNavigate();
+
+  const handleBookClick = () => {
+    navigate(`/books/${book._id}`);
+  };
+
+  const handleEditClick = (e) => {
+    e.stopPropagation(); // Prevent triggering the book click
+    navigate(`/edit-book/${book._id}`);
+  };
+
+  return (
+    <div className="book-list-item clickable" onClick={handleBookClick}>
+      <div className="book-cover-placeholder">
+        {book.coverImage && book.coverImage !== "default-cover.jpg" ? (
+          <img
+            src={book.coverImage}
+            alt={book.title}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              borderRadius: "4px",
+            }}
+          />
+        ) : (
+          <BookOpen size={18} />
+        )}
+      </div>
+      <div className="book-list-info">
+        <span className="book-list-title">{book.title}</span>
+        <span
+          className="book-list-meta"
+          style={{ textTransform: "capitalize" }}
+        >
+          {book.genre}
+          {book.totalReads > 0 &&
+            ` · ${book.totalReads.toLocaleString()} reads`}
+          {book.averageRating > 0 && ` · ★ ${book.averageRating}`}
+        </span>
+      </div>
+      <div className="book-list-actions">
+        <span className={`status-badge status-badge--${book.status}`}>
+          {book.status.replace("_", " ")}
+        </span>
+        <button
+          onClick={handleEditClick}
+          className="btn-edit-book"
+          title="Edit Book"
+        >
+          <Edit size={16} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Loading skeleton
+const BookSkeleton = () => (
+  <div className="book-list-item" style={{ opacity: 0.5 }}>
+    <div
+      className="book-cover-placeholder"
+      style={{ background: "var(--bg-tertiary)" }}
+    />
+    <div className="book-list-info">
+      <div
+        style={{
+          height: 12,
+          background: "var(--bg-tertiary)",
+          borderRadius: 4,
+          width: "60%",
+          marginBottom: 6,
+        }}
+      />
+      <div
+        style={{
+          height: 10,
+          background: "var(--bg-tertiary)",
+          borderRadius: 4,
+          width: "40%",
+        }}
+      />
+    </div>
+  </div>
+);
+
+//  Component
 const AuthorProfileContent = ({ user }) => {
-  const mockBooks = [
-    {
-      id: 1,
-      title: "The Digital Age",
-      genre: "Sci-Fi",
-      reads: 1243,
-      rating: 4.8,
-      status: "published",
-    },
-    {
-      id: 2,
-      title: "Blockchain Stories",
-      genre: "Technology",
-      reads: 892,
-      rating: 4.5,
-      status: "published",
-    },
-    {
-      id: 3,
-      title: "Draft: Untitled",
-      genre: "Fiction",
-      reads: 0,
-      rating: 0,
-      status: "draft",
-    },
-  ];
+  const { books, loading, error, refetch } = useMyBooks();
+
+  // Compute real stats from actual books
+  const published = books.filter((b) => b.status === "published");
+  const totalReads = books.reduce((s, b) => s + (b.totalReads || 0), 0);
+  const ratedBooks = books.filter((b) => b.averageRating > 0);
+  const avgRating = ratedBooks.length
+    ? (
+        ratedBooks.reduce((s, b) => s + b.averageRating, 0) / ratedBooks.length
+      ).toFixed(1)
+    : "—";
+
+  const formatReads = (n) =>
+    n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
 
   return (
     <>
-      {/* Stats */}
+      {/* Real stats */}
       <div className="profile-stats-row">
         <StatBubble
           icon={<BookOpen size={20} />}
-          value="5"
+          value={String(published.length)}
           label="Published"
           color="indigo"
         />
         <StatBubble
           icon={<Users size={20} />}
-          value="342"
+          value="—"
           label="Followers"
           color="pink"
         />
         <StatBubble
           icon={<TrendingUp size={20} />}
-          value="1.2K"
+          value={formatReads(totalReads)}
           label="Total Reads"
           color="teal"
         />
         <StatBubble
           icon={<Star size={20} />}
-          value="4.7"
+          value={avgRating}
           label="Avg Rating"
           color="yellow"
         />
       </div>
 
-      {/* Genre tags */}
+      {/* Writing genres */}
       {user?.interests?.length > 0 && (
         <section className="profile-section">
           <h3 className="profile-section-title">
@@ -87,7 +165,7 @@ const AuthorProfileContent = ({ user }) => {
         </section>
       )}
 
-      {/* Books */}
+      {/* My books — real data with clickable books and edit button */}
       <section className="profile-section">
         <div className="section-header-row">
           <h3 className="profile-section-title">
@@ -97,19 +175,35 @@ const AuthorProfileContent = ({ user }) => {
             + New Book
           </Link>
         </div>
+
         <div className="book-list">
-          {mockBooks.map((book) => (
-            <BookListItem
-              key={book.id}
-              book={book}
-              showStatus={true}
-              showRating={true}
-            />
-          ))}
+          {loading && [1, 2, 3].map((k) => <BookSkeleton key={k} />)}
+
+          {error && (
+            <p style={{ color: "var(--accent-danger)", fontSize: "0.85rem" }}>
+              {error}
+            </p>
+          )}
+
+          {!loading && !error && books.length === 0 && (
+            <div className="empty-books">
+              <BookOpen
+                size={28}
+                style={{ color: "var(--text-muted)", marginBottom: "0.5rem" }}
+              />
+              <p>
+                No books yet.{" "}
+                <Link to="/upload-book">Upload your first book →</Link>
+              </p>
+            </div>
+          )}
+
+          {!loading &&
+            books.map((book) => <BookRow key={book._id} book={book} />)}
         </div>
       </section>
 
-      {/* Blockchain wallet status */}
+      {/* Blockchain wallet */}
       <section className="profile-section">
         <h3 className="profile-section-title">
           <Shield size={16} /> Blockchain Ownership

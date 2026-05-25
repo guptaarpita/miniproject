@@ -1,5 +1,25 @@
 const mongoose = require("mongoose");
 
+const chapterSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  content: {
+    type: String,
+    required: true,
+  },
+  order: {
+    type: Number,
+    required: true,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
 const bookSchema = new mongoose.Schema(
   {
     title: {
@@ -43,8 +63,9 @@ const bookSchema = new mongoose.Schema(
       default: "default-cover.jpg",
     },
     contentFile: {
-      type: String, // URL or path to PDF/epub
+      type: String,
     },
+    chapters: [chapterSchema],
     language: {
       type: String,
       default: "english",

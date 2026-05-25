@@ -75,7 +75,7 @@ const EditProfilePage = () => {
         <div className="edit-profile-card">
           <h2 className="edit-profile-title">Edit Profile</h2>
 
-          {/* Profile picture upload */}
+          {/* ── Profile picture upload ─────────────────────────────────────── */}
           <div className="edit-picture-section">
             <ProfilePictureUpload />
           </div>
@@ -104,7 +104,7 @@ const EditProfilePage = () => {
               />
             </div>
 
-            {/* Email - read only */}
+            {/* Email — read only */}
             <div className="edit-form-group">
               <label className="edit-label">
                 <Mail size={14} /> Email Address

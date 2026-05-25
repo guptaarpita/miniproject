@@ -10,8 +10,9 @@ import api from "../../utils/api.js";
 import "../../styles/ProfilePage.css";
 
 const ProfilePage = () => {
-  const { user, isAuthor, isPublisher, isReader, updateProfile, logout } = useAuth();
+  const { user, isAuthor, isPublisher, isReader, updateProfile } = useAuth();
   const navigate = useNavigate();
+
   const [profile, setProfile] = useState(user);
   const [profileLoading, setProfileLoading] = useState(true);
 
@@ -34,8 +35,6 @@ const ProfilePage = () => {
     };
     fetchFreshProfile();
   }, []);
-
-  // Merge fresh profile back when picture is saved
   const handlePictureSaved = (newUrl) => {
     setProfile((prev) => ({ ...prev, profilePicture: newUrl }));
   };
@@ -58,13 +57,11 @@ const ProfilePage = () => {
         year: "numeric",
       })
     : "Jan 2026";
-
-  // Show the best available profile data
   const displayUser = { ...user, ...profile };
 
   return (
     <div className="profile-page">
-      {/* Cover / hero  */}
+      {/* Cover / hero */}
       <div
         className="profile-cover"
         style={{
@@ -135,16 +132,10 @@ const ProfilePage = () => {
             <Edit2 size={15} />
             Edit Profile
           </button>
-          <button
-              className="btn-logout-profile"
-              onClick={logout}
-          >
-              Logout
-          </button>
         </div>
       </div>
 
-      {/*  Role content  */}
+      {/* Role content */}
       <div className="container profile-body">
         {isReader && <ReaderProfileContent user={displayUser} />}
         {isAuthor && <AuthorProfileContent user={displayUser} />}
