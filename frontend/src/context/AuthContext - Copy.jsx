@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  //  Hydrate from localStorage on mount
+  // Hydrate from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) {

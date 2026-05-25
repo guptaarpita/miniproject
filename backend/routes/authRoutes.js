@@ -10,6 +10,7 @@ const {
   updateUserProfile,
   linkWallet,
 } = require("../controllers/authController");
+const { uploadProfilePicture } = require("../controllers/UploadController.js");
 const { protect } = require("../middleware/authMiddleware");
 const {
   validateRegister,
@@ -17,16 +18,17 @@ const {
   validate,
 } = require("../utils/validators");
 
-// Public routes
+//  Public
 router.post("/send-otp", validateRegister, validate, sendRegistrationOTP);
 router.post("/verify-otp", verifyOTPAndRegister);
 router.post("/resend-otp", resendOTP);
 router.post("/register", validateRegister, validate, registerUser);
 router.post("/login", validateLogin, validate, loginUser);
 
-// Private routes
+// Private
 router.get("/profile", protect, getUserProfile);
 router.put("/profile", protect, updateUserProfile);
+router.put("/profile/picture", protect, uploadProfilePicture); // ← new
 router.post("/link-wallet", protect, linkWallet);
 
 module.exports = router;

@@ -16,10 +16,14 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import Dashboard from "./pages/Dashboard";
 
+import BooksPage from "./pages/BooksPage.jsx";
+import BookDetail from "./components/books/BookDetail.jsx";
+import UploadBookPage from "./pages/UploadBookPage";
+import EditBookPage from "./pages/EditBookPage";
+
 import ProfilePage from "./pages/Profile/ProfilePage.jsx";
 import EditProfilePage from "./pages/Profile/EditProfilePage.jsx";
 
-// Lazy placeholders for pages coming next
 // import BooksPage from "./pages/BooksPage";
 // import UploadBookPage from "./pages/UploadBookPage";
 // import AuthorsPage from "./pages/AuthorsPage";
@@ -81,6 +85,12 @@ const App = () => {
                   </PrivateRoute>
                 }
               />
+
+              {/* Books */}
+              <Route path="/books" element={<BooksPage />} />
+              <Route path="/books/:id" element={<BookDetail />} />
+              <Route path="/upload-book" element={<UploadBookPage />} />
+              <Route path="/edit-book/:id" element={<EditBookPage />} />
 
               {/* Catch-all */}
               <Route path="*" element={<Navigate to="/" replace />} />

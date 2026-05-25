@@ -274,6 +274,210 @@ const getMyBooks = async (req, res) => {
   }
 };
 
+// Get all chapters of a book
+const getBookChapters = async (req, res) => {
+  try {
+    const book = await Book.findById(req.params.id)
+      .select("title chapters author")
+      .populate("author", "name");
+
+    if (!book) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Book not found" });
+    }
+
+    // Sort chapters by order
+    const chapters = book.chapters.sort((a, b) => a.order - b.order);
+
+    res.json({
+      success: true,
+      data: {
+        bookId: book._id,
+        bookTitle: book.title,
+        author: book.author,
+        chapters,
+      },
+    });
+  } catch (error) {
+    console.error("getBookChapters error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// Get specific chapter content
+const getChapterContent = async (req, res) => {
+  try {
+    const { id, chapterId } = req.params;
+
+    const book = await Book.findById(id)
+      .select("title author chapters")
+      .populate("author", "name");
+
+    if (!book) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Book not found" });
+    }
+
+    const chapter = book.chapters.id(chapterId);
+
+    if (!chapter) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Chapter not found" });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        bookId: book._id,
+        bookTitle: book.title,
+        author: book.author,
+        chapter: {
+          id: chapter._id,
+          title: chapter.title,
+          content: chapter.content,
+          order: chapter.order,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("getChapterContent error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// Add a new chapter (author only)
+const addChapter = async (req, res) => {
+  try {
+    const { title, content, order } = req.body;
+
+    if (!title || !content) {
+      return res.status(400).json({
+        success: false,
+        message: "Title and content are required",
+      });
+    }
+
+    const book = await Book.findById(req.params.id);
+
+    if (!book) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Book not found" });
+    }
+
+    // Check if user is the author
+    if (book.author.toString() !== req.user._id.toString()) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authorized" });
+    }
+
+    const newOrder = order || book.chapters.length + 1;
+
+    book.chapters.push({
+      title,
+      content,
+      order: newOrder,
+    });
+
+    await book.save();
+
+    res.status(201).json({
+      success: true,
+      data: book.chapters[book.chapters.length - 1],
+      message: "Chapter added successfully",
+    });
+  } catch (error) {
+    console.error("addChapter error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// Update a chapter (author only)
+const updateChapter = async (req, res) => {
+  try {
+    const { title, content, order } = req.body;
+    const { id, chapterId } = req.params;
+
+    const book = await Book.findById(id);
+
+    if (!book) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Book not found" });
+    }
+
+    if (book.author.toString() !== req.user._id.toString()) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authorized" });
+    }
+
+    const chapter = book.chapters.id(chapterId);
+
+    if (!chapter) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Chapter not found" });
+    }
+
+    if (title) chapter.title = title;
+    if (content) chapter.content = content;
+    if (order) chapter.order = order;
+
+    await book.save();
+
+    res.json({
+      success: true,
+      data: chapter,
+      message: "Chapter updated successfully",
+    });
+  } catch (error) {
+    console.error("updateChapter error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// Delete a chapter (author only)
+const deleteChapter = async (req, res) => {
+  try {
+    const { id, chapterId } = req.params;
+
+    const book = await Book.findById(id);
+
+    if (!book) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Book not found" });
+    }
+
+    if (book.author.toString() !== req.user._id.toString()) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authorized" });
+    }
+
+    book.chapters.pull({ _id: chapterId });
+
+    book.chapters.forEach((chapter, index) => {
+      chapter.order = index + 1;
+    });
+
+    await book.save();
+
+    res.json({
+      success: true,
+      message: "Chapter deleted successfully",
+    });
+  } catch (error) {
+    console.error("deleteChapter error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 module.exports = {
   getBooks,
   getBookById,
@@ -283,4 +487,9 @@ module.exports = {
   publishBook,
   rateBook,
   getMyBooks,
+  getBookChapters,
+  getChapterContent,
+  addChapter,
+  updateChapter,
+  deleteChapter,
 };
